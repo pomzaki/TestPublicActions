@@ -1,0 +1,53 @@
+name: Master Tool
+
+on:
+  workflow_call:
+    secrets:
+      github_actions_token:
+        description: 'GAT'
+        required: true
+    inputs:
+      is-merge-request:
+        description: 'テストflg'
+        type: boolean
+        default: false
+
+env:
+  TEMP_BRANCH: pull/${{ github.event.pull_request.number }}/tool
+  GH_HOST: github.com
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ secrets.github_actions_token }}
+  PR_NUMBER: ${{ github.event.number }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Install gh
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gh
+
+    - name: Debug gh auth
+      run: gh auth status || true
+
+    - name: Remove Label
+      if: ${{ github.event.label.name != 'テスト実行3' && !inputs.is-after-merge-request }}
+      run: gh pr edit ${{ github.event.pull_request.number }} --remove-label ${{ github.event.label.name }}
+    
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        lfs: false
+        ref: ${{ github.head_ref }}
+        persist-credentials: false
+
+    - name: マージ
+      if: ${{ inputs.is-merge-request }}
+      run: |
+        gh pr merge --merge --auto $PR_NUMBER
+

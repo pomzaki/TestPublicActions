@@ -1,0 +1,28 @@
+name: Labeled Event Dispatcher
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+jobs:       
+  default-action:
+    if: github.event.label.name == 'テスト実行1'
+    uses: ./.github/workflows/test.yml
+    secrets:
+      github_actions_token: ${{ secrets.GHA_TOKEN }}
+    with:
+      is-merge-request: false
+  auto-merge-action:
+    if: github.event.label.name == 'テスト実行'
+    uses: ./.github/workflows/test.yml
+    secrets:
+      github_actions_token: ${{ secrets.GHA_TOKEN }}
+    with:
+      is-merge-request: true
+  iftest-action:
+    if: github.event.label.name == 'テスト実行3'
+    uses: ./.github/workflows/test.yml
+    secrets:
+      github_actions_token: ${{ secrets.GHA_TOKEN }}
+    with:
+      is-merge-request: false
