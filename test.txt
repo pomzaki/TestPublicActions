@@ -20,3 +20,4 @@ abcd
 >>>>>>> origin/test_1
 a
 a
+a
