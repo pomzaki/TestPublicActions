@@ -76,12 +76,16 @@ jobs:
         # マージ可能性の計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
         for i in {1..6}; do
           MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq .mergeable)
+          echo $MERGEABLE
+
           if [ "$MERGEABLE" != "UNKNOWN" ]; then
             break
           fi
           echo "Waiting for mergeability check..."
-          echo $MERGEABLE
           sleep 5
         done
+
+        # 2. PRを最新化
+        gh pr update-branch ${{ github.event.pull_request.number }}
 
         gh pr merge ${{ github.event.pull_request.number }} --merge --auto
