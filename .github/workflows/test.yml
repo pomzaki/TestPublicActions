@@ -45,9 +45,31 @@ jobs:
         lfs: false
         ref: ${{ github.head_ref }}
         persist-credentials: false
-
+      
     - name: マージ
-      if: ${{ inputs.is-merge-request }}
+      id: merge
       run: |
-        gh pr merge --merge --auto $PR_NUMBER
+        git config --local user.email "yamazaki.yukari.0416@gmail.com"
+        git config --local user.name "pomzaki"
+        git config --global url.https://x-access-token:${{ secrets.github_actions_token }}@github.com/.insteadOf https://github.com/
+        
+        GIT_ASKPASS="/tmp/.git-askpass" git merge --no-ff origin/$base
+      continue-on-error: true
+      env:
+        base: ${{ github.event.pull_request.base.ref }}
+      
+    - name: Append text to file
+      run: echo "a" >> test.txt
+      
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "yamazaki.yukari.0416@gmail.com"
+        git config --local user.name "pomzaki"
+        git config --global url.https://x-access-token:${{ secrets.github_actions_token }}@github.com/.insteadOf https://github.com/
+        git add test.txt
+        git commit -m "Add 'a' to test.txt"
+        git push --force-with-lease origin HEAD:refs/heads/${{ github.event.pull_request.head.ref }}
 
+    - name: その後、マージを実行する
+      run: |
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
