@@ -73,15 +73,44 @@ jobs:
     - name: その後、マージを実行する
       run: |
 
-        # マージ可能性の計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
-        for i in {1..6}; do
-          MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq .mergeable)
-          if [ "$MERGEABLE" != "UNKNOWN" ]; then
-            break
-          fi
-          echo "Waiting for mergeability check..."
-          echo $MERGEABLE
-          sleep 5
-        done
+        # ステータス更新待機
+        wait_until_settled() {
+          # コミット後の情報更新に時間がかかる可能性があるため、計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
+          for i in {1..6}; do
+            # 現在状態を取得
+            pr_json=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" \
+              --json state,mergedAt,mergeable,mergeStateStatus,isDraft,reviewDecision,autoMergeRequest)
 
+            is_merged=$(echo "$pr_json" | jq -r '.state != null and .state == "MERGED"')
+            is_mergeable_known=$(echo "$pr_json" | jq -r '.mergeable != null and .mergeable != "UNKNOWN"')
+            is_mergestatus_known=$(echo "$pr_json" | jq -r '.mergeStateStatus != null and .mergeStateStatus != "UNKNOWN"')
+
+            echo "Current pr status $pr_json"
+            
+            # マージ済みであれば終了
+            if [ "$is_merged" = true ]; then
+              echo "Already merged -> skipping auto-merge"
+              exit 0
+            fi
+
+            if [ "$is_mergeable_known" = true ] && [ "$is_mergestatus_known" = true ]; then
+              break
+            fi
+
+            echo "Waiting for mergeability check..."
+            echo "Current pr status $pr_json"
+            sleep 5
+          done
+        }
+
+        # ステータス更新待機
+        wait_until_settled
+
+        # auto-merge を有効化（登録フェーズ）
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+
+        # ステータス更新待機
+        wait_until_settled
+
+        # auto-merge設定後の更新タイミングによってはマージ処理まで走らないため、確定用に再度mergeを呼び出す
         gh pr merge ${{ github.event.pull_request.number }} --merge --auto
