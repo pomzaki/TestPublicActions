@@ -105,6 +105,9 @@ jobs:
           sleep 5
         done
 
+        #2回目
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+
         gh pr view "${{ github.event.pull_request.number }}" \
           --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
           --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
