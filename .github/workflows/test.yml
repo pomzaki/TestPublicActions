@@ -89,3 +89,6 @@ jobs:
         gh pr update-branch ${{ github.event.pull_request.number }}
 
         gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+
+        gh pr view "$PR_NUMBER" --json merged,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest \
+        --jq '{merged, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
