@@ -84,7 +84,7 @@ jobs:
             MERGE_STATUS=$(echo "$_PR_JSON" | jq -r .mergeStateStatus)
             STATE=$(echo "$_PR_JSON" | jq -r .state)
 
-            echo "$MERGE_STATE / $MERGEABLE / $STATE"
+            echo "$MERGE_STATUS / $MERGEABLE / $STATE"
 
             # マージ済みであれば終了
             if [ "$STATE" = "MERGED" ]; then
