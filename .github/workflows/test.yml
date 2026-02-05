@@ -1,4 +1,4 @@
-name: Master Tool
+name: Test Action Tool
 
 on:
   workflow_call:
