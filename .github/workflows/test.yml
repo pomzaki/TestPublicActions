@@ -76,12 +76,18 @@ jobs:
         # --- helper: PR状態を一度で取得 ---
         fetch_pr_state() {
           _PR_JSON=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" \
-            --json state,mergeable,mergeStateStatus)
+            --json state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null))
           MERGEABLE=$(echo "$_PR_JSON" | jq -r .mergeable)
           MS=$(echo "$_PR_JSON" | jq -r .mergeStateStatus)
           STATE=$(echo "$_PR_JSON" | jq -r .state)
+          echo "$_PR_JSON"
         }
 
+        echo "--- 1"
+        # 初回状態チェック
+        fetch_pr_state
+
+        echo "--- 2"
         # コミット後の情報更新に時間がかかる可能性があるため、計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
         for i in {1..6}; do
 
@@ -100,13 +106,14 @@ jobs:
           sleep 5
         done
 
-        gh pr view "${{ github.event.pull_request.number }}" \
-          --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-          --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
+        # gh pr view "${{ github.event.pull_request.number }}" \
+        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
+        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
 
         # auto-merge を有効化（登録フェーズ）
         gh pr merge ${{ github.event.pull_request.number }} --merge --auto
 
+        echo "--- 3"
         for i in {1..6}; do
 
           fetch_pr_state
@@ -124,13 +131,17 @@ jobs:
           sleep 5
         done
 
-        gh pr view "${{ github.event.pull_request.number }}" \
-          --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-          --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
+        echo "--- 4"
+        fetch_pr_state
+        # gh pr view "${{ github.event.pull_request.number }}" \
+        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
+        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
 
         gh pr merge ${{ github.event.pull_request.number }} --merge --auto
 
-        gh pr view "${{ github.event.pull_request.number }}" \
-          --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-          --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
+        echo "--- 5"
+        fetch_pr_state
+        # gh pr view "${{ github.event.pull_request.number }}" \
+        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
+        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
 
