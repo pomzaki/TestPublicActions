@@ -73,6 +73,8 @@ jobs:
     - name: その後、マージを実行する
       run: |
 
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto || true
+
         # コミット後の情報更新に時間がかかる可能性があるため、計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
         for i in {1..6}; do
           MERGEABLE=$(gh pr view $PR_NUMBER --json mergeable --jq .mergeable)
@@ -84,8 +86,6 @@ jobs:
           echo "Waiting for mergeability check..."
           sleep 5
         done
-
-        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
 
         gh pr view "$PR_NUMBER" \
           --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
