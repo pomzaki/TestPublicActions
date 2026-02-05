@@ -85,6 +85,8 @@ jobs:
             is_mergeable_known=$(echo "$pr_json" | jq -r '.mergeable != null and .mergeable != "UNKNOWN"')
             is_mergestatus_known=$(echo "$pr_json" | jq -r '.mergeStateStatus != null and .mergeStateStatus != "UNKNOWN"')
 
+            echo "Current pr status $pr_json"
+            
             # マージ済みであれば終了
             if [ "$is_merged" = true ]; then
               echo "Already merged -> skipping auto-merge"
