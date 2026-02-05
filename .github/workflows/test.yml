@@ -76,10 +76,12 @@ jobs:
         # --- helper: PR状態を一度で取得 ---
         fetch_pr_state() {
           _PR_JSON=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" \
-            --json state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null))
+            --json state,mergedAt,mergeable,mergeStateStatus,isDraft,reviewDecision,autoMergeRequest)
           MERGEABLE=$(echo "$_PR_JSON" | jq -r .mergeable)
           MS=$(echo "$_PR_JSON" | jq -r .mergeStateStatus)
           STATE=$(echo "$_PR_JSON" | jq -r .state)
+          AUTO_MERGE_ENABLED=$(echo "$_PR_JSON" | jq -r '(.autoMergeRequest != null)')
+          echo "autoMergeEnabled=$AUTO_MERGE_ENABLED"
           echo "$_PR_JSON"
         }
 
@@ -111,7 +113,7 @@ jobs:
         #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
 
         # auto-merge を有効化（登録フェーズ）
-        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+        gh pr merge ${{ github.event.pull_request.number }} --repo "$GH_REPO" --merge --auto
 
         echo "--- 3"
         for i in {1..6}; do
@@ -137,7 +139,7 @@ jobs:
         #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
         #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
 
-        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+        gh pr merge ${{ github.event.pull_request.number }} --repo "$GH_REPO" --merge --auto
 
         echo "--- 5"
         fetch_pr_state
