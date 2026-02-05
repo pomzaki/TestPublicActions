@@ -85,65 +85,42 @@ jobs:
           echo "$_PR_JSON"
         }
 
+        # --- helper: UNKNOWNが落ち着くまで待つ（最大30秒） ---
+        wait_until_settled() {
+          # コミット後の情報更新に時間がかかる可能性があるため、計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
+          for i in {1..6}; do
+
+            fetch_pr_state
+            echo "$MS / $MERGEABLE / $STATE"
+
+            if [ "$STATE" = "MERGED" ]; then
+              echo "Already merged -> skipping second auto-merge call"
+              exit 0
+            fi
+
+            if [ "$MERGEABLE" != "UNKNOWN" ] && [ "$MS" != "UNKNOWN" ]; then
+              break
+            fi
+            echo "Waiting for mergeability check..."
+            sleep 5
+          done
+        }
+
         echo "--- 1"
         # 初回状態チェック
         fetch_pr_state
 
         echo "--- 2"
         # コミット後の情報更新に時間がかかる可能性があるため、計算が終わる(UNKNOWNでなくなる)まで最大30秒待機
-        for i in {1..6}; do
-
-          fetch_pr_state
-          echo "$MS / $MERGEABLE / $STATE"
-
-          if [ "$STATE" = "MERGED" ]; then
-            echo "Already merged -> skipping second auto-merge call"
-            exit 0
-          fi
-
-          if [ "$MERGEABLE" != "UNKNOWN" ] && [ "$MS" != "UNKNOWN" ]; then
-            break
-          fi
-          echo "Waiting for mergeability check..."
-          sleep 5
-        done
-
-        # gh pr view "${{ github.event.pull_request.number }}" \
-        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
+        wait_until_settled
 
         # auto-merge を有効化（登録フェーズ）
         gh pr merge ${{ github.event.pull_request.number }} --repo "$GH_REPO" --merge --auto
 
         echo "--- 3"
-        for i in {1..6}; do
-
-          fetch_pr_state
-          echo "$MS / $MERGEABLE / $STATE"
-
-          if [ "$STATE" = "MERGED" ]; then
-            echo "Already merged -> skipping second auto-merge call"
-            exit 0
-          fi
-
-          if [ "$MERGEABLE" != "UNKNOWN" ] && [ "$MS" != "UNKNOWN" ]; then
-            break
-          fi
-          echo "Waiting for mergeability check..."
-          sleep 5
-        done
-
-        echo "--- 4"
-        fetch_pr_state
-        # gh pr view "${{ github.event.pull_request.number }}" \
-        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
+        wait_until_settled
 
         gh pr merge ${{ github.event.pull_request.number }} --repo "$GH_REPO" --merge --auto
 
-        echo "--- 5"
+        echo "--- 4"
         fetch_pr_state
-        # gh pr view "${{ github.event.pull_request.number }}" \
-        #   --json state,mergeable,mergeStateStatus,isDraft,reviewDecision,statusCheckRollup,autoMergeRequest,mergedAt \
-        #   --jq '{state, mergedAt, mergeable, mergeStateStatus, isDraft, reviewDecision, autoMergeEnabled:(.autoMergeRequest!=null), checks:(.statusCheckRollup|length)}'
-
