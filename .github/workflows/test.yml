@@ -81,9 +81,9 @@ jobs:
             pr_json=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" \
               --json state,mergedAt,mergeable,mergeStateStatus,isDraft,reviewDecision,autoMergeRequest)
 
-            is_merged=$(echo "$pr_json" | jq -r '.state == "MERGED"')
-            is_mergeable_known=$(echo "$pr_json" | jq -r '.mergeable != "UNKNOWN"')
-            is_mergestatus_known=$(echo "$pr_json" | jq -r '.mergeStateStatus != "UNKNOWN"')
+            is_merged=$(echo "$pr_json" | jq -r '.state != null and .state == "MERGED"')
+            is_mergeable_known=$(echo "$pr_json" | jq -r '.mergeable != null and .mergeable != "UNKNOWN"')
+            is_mergestatus_known=$(echo "$pr_json" | jq -r '.mergeStateStatus != null and .mergeStateStatus != "UNKNOWN"')
 
             # マージ済みであれば終了
             if [ "$is_merged" = true ]; then
