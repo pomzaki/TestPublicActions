@@ -107,10 +107,10 @@ jobs:
         wait_until_settled
 
         # auto-merge を有効化（登録フェーズ）
-        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto --repo "$GH_REPO" 
 
         # ステータス更新待機
         wait_until_settled
 
         # auto-merge設定後の更新タイミングによってはマージ処理まで走らないため、確定用に再度mergeを呼び出す
-        gh pr merge ${{ github.event.pull_request.number }} --merge --auto
+        gh pr merge ${{ github.event.pull_request.number }} --merge --auto --repo "$GH_REPO" 
