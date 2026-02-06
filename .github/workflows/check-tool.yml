@@ -8,6 +8,9 @@ env:
   GH_REPO: ${{ github.repository }}
   GH_TOKEN: ${{ github.token }}
 
+permissions:
+  pull-requests: read
+
 jobs:
   check-action:
     runs-on: ubuntu-latest
