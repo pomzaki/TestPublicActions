@@ -3,12 +3,10 @@ name: automerge-check
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-  workflow_dispatch:
-
 env:
   GH_HOST: github.com
   GH_REPO: ${{ github.repository }}
-  GH_TOKEN: ${{ secrets.github_actions_token }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   check-action:
@@ -25,7 +23,7 @@ jobs:
 
       - name: Debug gh auth
         run: gh auth status || true
-        
+
       - name: Detect auto-merge label and write summary
         run: |
           set -e
