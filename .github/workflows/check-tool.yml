@@ -42,10 +42,17 @@ jobs:
 
           ARMED=false
 
-          # 1) If this run was triggered by labeling, trust the event payload
-          if [ "$EVENT_ACTION" = "labeled" ] && [ "$EVENT_LABEL_NAME" = "$AUTO_MERGE_LABEL" ]; then
+          # 1) If this run was triggered by label add/remove, trust the event payload.
+          # NOTE: The auto-merge workflow may remove the label immediately, causing a subsequent "unlabeled" run.
+          # We treat both as "armed" because "unlabeled" here means the trigger label was consumed.
+          if { [ "$EVENT_ACTION" = "labeled" ] || [ "$EVENT_ACTION" = "unlabeled" ]; } && \
+             [ "$EVENT_LABEL_NAME" = "$AUTO_MERGE_LABEL" ]; then
             ARMED=true
-            echo "Auto-merge label detected from event payload."
+            if [ "$EVENT_ACTION" = "labeled" ]; then
+              echo "Auto-merge label detected from event payload (labeled)."
+            else
+              echo "Auto-merge label detected from event payload (unlabeled / consumed)."
+            fi
           fi
 
           # 2) Fallback: check current labels on PR (for opened/synchronize/reopened)
@@ -71,7 +78,13 @@ jobs:
               echo "### ✅ Auto-merge: armed（ラベル検知済み）"
               echo ""
               echo "- Trigger label: \`$AUTO_MERGE_LABEL\`"
-              echo "- Detection source: $([ "$EVENT_ACTION" = "labeled" ] && echo 'event payload' || echo 'current labels')"
+              if [ "$EVENT_ACTION" = "labeled" ]; then
+                echo "- Detection source: event payload (labeled)"
+              elif [ "$EVENT_ACTION" = "unlabeled" ]; then
+                echo "- Detection source: event payload (unlabeled / consumed)"
+              else
+                echo "- Detection source: current labels"
+              fi
               echo "- This check exists to provide a stable trigger and visibility for auto-merge."
               echo "- The auto-merge tool workflow will attempt to merge this PR when mergeability is determined."
             } >> "$GITHUB_STEP_SUMMARY"
