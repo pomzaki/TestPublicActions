@@ -1,12 +1,41 @@
-name: Test Check Tool
+name: automerge-check
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
 
 jobs:
-  ready:
+  gate:
     runs-on: ubuntu-latest
     steps:
-      - name: Ready
-        run: echo "ready"
+      - name: Detect auto-merge label and write summary
+        env:
+          GH_HOST: github.com
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.github_actions_token }}
+        run: |
+          set -e
+
+          # Change this to the label name you use to trigger auto-merge
+          AUTO_MERGE_LABEL="テスト実行1"
+
+          labels=$(gh pr view "${{ github.event.pull_request.number }}" --json labels --jq '.labels[].name')
+          echo "Labels on PR:"
+          echo "$labels"
+
+          if echo "$labels" | grep -qx "$AUTO_MERGE_LABEL"; then
+            {
+              echo "### ✅ Auto-merge: armed（ラベル検知済み）"
+              echo ""
+              echo "- Trigger label: \`$AUTO_MERGE_LABEL\`"
+              echo "- This check exists to provide a stable trigger and visibility for auto-merge."
+              echo "- The auto-merge tool workflow will attempt to merge this PR when mergeability is determined."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### ℹ️ Auto-merge: not armed"
+              echo ""
+              echo "- Trigger label (\`$AUTO_MERGE_LABEL\`) is not present on this PR."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
