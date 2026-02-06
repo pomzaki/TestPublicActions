@@ -1,10 +1,2 @@
-<<<<<<< test_2
-aaa
-a
-a
-=======
-aa
->>>>>>> test_1
-a
-a
+aaaa
 a
