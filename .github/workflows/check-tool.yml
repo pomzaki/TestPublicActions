@@ -3,17 +3,28 @@ name: automerge-check
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-  workflow_dispatch:
+env:
+  GH_HOST: github.com
+  GH_REPO: ${{ github.repository }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
-  gate:
+  check-action:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+    
+      - name: Install gh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Debug gh auth
+        run: gh auth status || true
+
       - name: Detect auto-merge label and write summary
-        env:
-          GH_HOST: github.com
-          GH_REPO: ${{ github.repository }}
-          GH_TOKEN: ${{ secrets.github_actions_token }}
         run: |
           set -e
 
