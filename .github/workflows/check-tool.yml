@@ -34,22 +34,44 @@ jobs:
           # Change this to the label name you use to trigger auto-merge
           AUTO_MERGE_LABEL="テスト実行1"
 
-          # Fetch labels JSON (force repo because we didn't checkout the repo, so gh can't infer it reliably)
-          PR_JSON=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" --json labels 2>&1)
-          echo "gh pr view --json labels raw:"
-          echo "$PR_JSON"
+          EVENT_ACTION="${{ github.event.action }}"
+          EVENT_LABEL_NAME="${{ github.event.label.name || '' }}"
 
-          # Extract label names (if no labels, this becomes empty)
-          labels=$(echo "$PR_JSON" | jq -r '.labels[].name // empty' || true)
+          echo "Event action: $EVENT_ACTION"
+          echo "Event label:  $EVENT_LABEL_NAME"
 
-          echo "Labels on PR:"
-          echo "$labels"
+          ARMED=false
 
-          if echo "$labels" | grep -qx "$AUTO_MERGE_LABEL"; then
+          # 1) If this run was triggered by labeling, trust the event payload
+          if [ "$EVENT_ACTION" = "labeled" ] && [ "$EVENT_LABEL_NAME" = "$AUTO_MERGE_LABEL" ]; then
+            ARMED=true
+            echo "Auto-merge label detected from event payload."
+          fi
+
+          # 2) Fallback: check current labels on PR (for opened/synchronize/reopened)
+          if [ "$ARMED" = false ]; then
+            PR_JSON=$(gh pr view "${{ github.event.pull_request.number }}" --repo "$GH_REPO" --json labels 2>&1)
+            echo "gh pr view --json labels raw:"
+            echo "$PR_JSON"
+
+            labels=$(echo "$PR_JSON" | jq -r '.labels[].name // empty' || true)
+
+            echo "Labels on PR:"
+            echo "$labels"
+
+            if echo "$labels" | grep -qx "$AUTO_MERGE_LABEL"; then
+              ARMED=true
+              echo "Auto-merge label detected from current labels."
+            fi
+          fi
+
+          # Write summary
+          if [ "$ARMED" = true ]; then
             {
               echo "### ✅ Auto-merge: armed（ラベル検知済み）"
               echo ""
               echo "- Trigger label: \`$AUTO_MERGE_LABEL\`"
+              echo "- Detection source: $([ "$EVENT_ACTION" = "labeled" ] && echo 'event payload' || echo 'current labels')"
               echo "- This check exists to provide a stable trigger and visibility for auto-merge."
               echo "- The auto-merge tool workflow will attempt to merge this PR when mergeability is determined."
             } >> "$GITHUB_STEP_SUMMARY"
@@ -58,5 +80,6 @@ jobs:
               echo "### ℹ️ Auto-merge: not armed"
               echo ""
               echo "- Trigger label (\`$AUTO_MERGE_LABEL\`) is not present on this PR."
+              echo "- Event action: \`$EVENT_ACTION\`"
             } >> "$GITHUB_STEP_SUMMARY"
           fi
