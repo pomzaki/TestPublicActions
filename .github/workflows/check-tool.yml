@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  automerge-check:
+  check-action:
     runs-on: ubuntu-latest
     steps:
       - name: Detect auto-merge label and write summary
